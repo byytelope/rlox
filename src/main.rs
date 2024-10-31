@@ -9,8 +9,10 @@ use std::{
     process::exit,
 };
 
+use scanner::Scanner;
+
 fn run_file(path: String) {
-    let contents = read_to_string(path).unwrap_or_default();
+    let contents = read_to_string(path).expect("Error while reading input file...");
     run(contents);
 }
 
@@ -18,22 +20,23 @@ fn run_prompt() {
     let mut buf = String::new();
 
     loop {
+        buf.clear();
         print!("> ");
         stdout().flush().expect("Failed to flush stdout...");
         stdin().read_line(&mut buf).expect("Failed to read line...");
-        buf = buf.trim().to_string();
 
-        if buf.is_empty() {
-            println!("Exiting...");
-            break;
-        }
-
-        run(buf.clone());
+        run(buf.to_string());
     }
 }
 
-fn run(source: String) {
-    println!("{}", source);
+fn run(src: String) {
+    println!("{}", src);
+    let mut scanner = Scanner::new(src);
+    scanner.scan_tokens();
+
+    for token in scanner.tokens {
+        println!("{:#?}", token);
+    }
 }
 
 fn main() {
@@ -44,8 +47,12 @@ fn main() {
             eprintln!("Usage: rlox [script]");
             exit(64);
         }
-        1 => run_file(args.last().unwrap().to_string()),
-        _ => run_prompt(),
+        1 => run_file(
+            args.last()
+                .expect("Error while reading args...")
+                .to_string(),
+        ),
+        0 => run_prompt(),
     }
 
     println!("{:#?}", args);

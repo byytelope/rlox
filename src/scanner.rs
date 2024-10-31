@@ -2,20 +2,20 @@ use crate::{token::Token, token_type::TokenType};
 
 pub struct Scanner {
     src: String,
-    tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
+    pub tokens: Vec<Token>,
 }
 
 impl Scanner {
     pub fn new(src: String) -> Self {
         Self {
-            src,
-            tokens: vec![],
+            src: src.to_string(),
             start: 0,
             current: 0,
             line: 1,
+            tokens: vec![],
         }
     }
 
@@ -25,7 +25,7 @@ impl Scanner {
             self.scan_token()
         }
 
-        self.tokens.push(Token::new(TokenType::Eof, "", self.line));
+        self.tokens.push(Token::new(TokenType::Eof, self.line));
     }
 
     fn scan_token(&mut self) {
@@ -43,36 +43,33 @@ impl Scanner {
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
             '!' => {
-                let ttype = if self.match_advance('=') {
-                    TokenType::Bang
-                } else {
-                    TokenType::BangEqual
+                let ttype = match self.match_advance('=') {
+                    true => TokenType::BangEqual,
+                    false => TokenType::Bang,
                 };
 
                 self.add_token(ttype)
             }
             '=' => {
-                let ttype = if self.match_advance('=') {
-                    TokenType::Equal
-                } else {
-                    TokenType::EqualEqual
+                let ttype = match self.match_advance('=') {
+                    true => TokenType::EqualEqual,
+                    false => TokenType::Equal,
                 };
 
                 self.add_token(ttype)
             }
             '<' => {
-                let ttype = if self.match_advance('=') {
-                    TokenType::Less
-                } else {
-                    TokenType::LessEqual
+                let ttype = match self.match_advance('=') {
+                    true => TokenType::LessEqual,
+                    false => TokenType::Less,
                 };
 
                 self.add_token(ttype)
             }
             '>' => {
                 let ttype = match self.match_advance('=') {
-                    true => TokenType::Greater,
-                    false => TokenType::GreaterEqual,
+                    true => TokenType::GreaterEqual,
+                    false => TokenType::Greater,
                 };
 
                 self.add_token(ttype)
@@ -105,16 +102,19 @@ impl Scanner {
         self.current >= self.src.len()
     }
 
-    fn advance(&self) -> char {
-        self.src
+    fn advance(&mut self) -> char {
+        let ch = self
+            .src
             .chars()
-            .nth(self.current + 1)
-            .expect("Error while peeking in advance()...")
+            .nth(self.current)
+            .expect("Error while peeking in advance()...");
+        self.current += 1;
+
+        ch
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        let text = &self.src.as_str()[self.start..self.current];
-        self.tokens.push(Token::new(token_type, text, self.line))
+        self.tokens.push(Token::new(token_type, self.line))
     }
 
     fn match_advance(&mut self, expected: char) -> bool {
@@ -205,6 +205,13 @@ impl Scanner {
             self.advance();
         }
 
-        self.add_token(TokenType::Identifier);
+        let text = &self.src.as_str()[self.start..self.current];
+        if let Some(ttype) = TokenType::get_keyword(text) {
+            self.add_token(ttype.clone());
+        } else {
+            self.add_token(TokenType::Identifier(
+                self.src.as_str()[self.start..self.current].to_string(),
+            ))
+        };
     }
 }

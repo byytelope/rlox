@@ -1,6 +1,8 @@
+mod ast;
+mod error;
+mod parser;
 mod scanner;
 mod token;
-mod token_type;
 
 use std::{
     env::args,
@@ -10,6 +12,11 @@ use std::{
 };
 
 use scanner::Scanner;
+
+pub enum Error {
+    EvalErr,
+    GeneralErr,
+}
 
 fn run_file(path: String) {
     let contents = read_to_string(path).expect("Error while reading input file...");

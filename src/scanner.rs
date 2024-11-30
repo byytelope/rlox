@@ -1,4 +1,4 @@
-use crate::{token::Token, token_type::TokenType};
+use crate::token::{Token, TokenType};
 
 pub struct Scanner {
     src: String,
@@ -43,36 +43,36 @@ impl Scanner {
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
             '!' => {
-                let ttype = match self.match_advance('=') {
+                let token_type = match self.match_advance('=') {
                     true => TokenType::BangEqual,
                     false => TokenType::Bang,
                 };
 
-                self.add_token(ttype)
+                self.add_token(token_type)
             }
             '=' => {
-                let ttype = match self.match_advance('=') {
+                let token_type = match self.match_advance('=') {
                     true => TokenType::EqualEqual,
                     false => TokenType::Equal,
                 };
 
-                self.add_token(ttype)
+                self.add_token(token_type)
             }
             '<' => {
-                let ttype = match self.match_advance('=') {
+                let token_type = match self.match_advance('=') {
                     true => TokenType::LessEqual,
                     false => TokenType::Less,
                 };
 
-                self.add_token(ttype)
+                self.add_token(token_type)
             }
             '>' => {
-                let ttype = match self.match_advance('=') {
+                let token_type = match self.match_advance('=') {
                     true => TokenType::GreaterEqual,
                     false => TokenType::Greater,
                 };
 
-                self.add_token(ttype)
+                self.add_token(token_type)
             }
             '/' => {
                 if self.match_advance('/') {
@@ -175,7 +175,12 @@ impl Scanner {
 
         self.advance();
 
-        let value = self.src.as_str()[self.start + 1..self.current - 1].to_string();
+        let value = self
+            .src
+            .get(self.start + 1..self.current - 1)
+            .unwrap_or_default()
+            .to_string();
+
         self.add_token(TokenType::Stringy(value));
     }
 
@@ -193,7 +198,7 @@ impl Scanner {
             }
         }
 
-        self.add_token(TokenType::Numeric(
+        self.add_token(TokenType::Number(
             self.src.chars().as_str()[self.start..self.current]
                 .parse::<f64>()
                 .expect("Error while parsing number..."),
@@ -206,8 +211,9 @@ impl Scanner {
         }
 
         let text = &self.src.as_str()[self.start..self.current];
-        if let Some(ttype) = TokenType::get_keyword(text) {
-            self.add_token(ttype.clone());
+
+        if let Some(token_type) = TokenType::get_keyword(text) {
+            self.add_token(token_type.clone());
         } else {
             self.add_token(TokenType::Identifier(
                 self.src.as_str()[self.start..self.current].to_string(),

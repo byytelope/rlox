@@ -1,1 +1,1 @@
-let bruh = 0;
+var bruh = 0;

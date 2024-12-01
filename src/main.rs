@@ -11,12 +11,8 @@ use std::{
     process::exit,
 };
 
+use parser::Parser;
 use scanner::Scanner;
-
-pub enum Error {
-    EvalErr,
-    GeneralErr,
-}
 
 fn run_file(path: String) {
     let contents = read_to_string(path).expect("Error while reading input file...");
@@ -32,18 +28,23 @@ fn run_prompt() {
         stdout().flush().expect("Failed to flush stdout...");
         stdin().read_line(&mut buf).expect("Failed to read line...");
 
-        run(buf.to_string());
+        if matches!(buf.as_str().trim(), "exit" | "quit") {
+            println!("Goodbye!");
+            exit(0);
+        } else {
+            run(buf.to_string());
+        }
     }
 }
 
 fn run(src: String) {
-    println!("{}", src);
     let mut scanner = Scanner::new(src);
     scanner.scan_tokens();
 
-    for token in scanner.tokens {
-        println!("{:#?}", token);
-    }
+    let mut parser = Parser::new(&scanner.tokens);
+    let expr = parser.parse().unwrap();
+
+    println!("{:#?}", expr);
 }
 
 fn main() {
@@ -51,7 +52,7 @@ fn main() {
 
     match args.len() {
         2.. => {
-            eprintln!("Usage: rlox [script]");
+            eprintln!("Usage: rlox [path/to/script]?");
             exit(64);
         }
         1 => run_file(

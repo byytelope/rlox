@@ -1,10 +1,10 @@
 use crate::{
     ast::{Expr, Literal},
-    error::{RError::RParseError, Result},
+    error::{Error::ParseErr, Result},
     token::{Token, TokenType},
 };
 
-struct Parser<'a> {
+pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
 }
@@ -14,6 +14,11 @@ impl<'a> Parser<'a> {
         Self { tokens, current: 0 }
     }
 
+    pub fn parse(&mut self) -> Result<Expr> {
+        self.expression()
+    }
+
+    #[allow(dead_code)]
     fn synchronize(&mut self) {
         self.advance();
 
@@ -42,7 +47,7 @@ impl<'a> Parser<'a> {
         self.equality()
     }
 
-    fn binary_expr<F>(&mut self, ops: &[TokenType], mut right_fn: F) -> Result<Expr>
+    fn binary_op<F>(&mut self, ops: &[TokenType], mut right_fn: F) -> Result<Expr>
     where
         F: FnMut(&mut Self) -> Result<Expr>,
     {
@@ -62,13 +67,13 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> Result<Expr> {
-        self.binary_expr(&[TokenType::BangEqual, TokenType::EqualEqual], |p| {
+        self.binary_op(&[TokenType::BangEqual, TokenType::EqualEqual], |p| {
             p.comparison()
         })
     }
 
     fn comparison(&mut self) -> Result<Expr> {
-        self.binary_expr(
+        self.binary_op(
             &[
                 TokenType::Greater,
                 TokenType::GreaterEqual,
@@ -80,11 +85,11 @@ impl<'a> Parser<'a> {
     }
 
     fn term(&mut self) -> Result<Expr> {
-        self.binary_expr(&[TokenType::Plus, TokenType::Minus], |p| p.factor())
+        self.binary_op(&[TokenType::Plus, TokenType::Minus], |p| p.factor())
     }
 
     fn factor(&mut self) -> Result<Expr> {
-        self.binary_expr(&[TokenType::Star, TokenType::Slash], |p| p.unary())
+        self.binary_op(&[TokenType::Star, TokenType::Slash], |p| p.unary())
     }
 
     fn unary(&mut self) -> Result<Expr> {
@@ -125,7 +130,7 @@ impl<'a> Parser<'a> {
                     expression: Box::new(exp),
                 }
             }
-            _ => return Err(RParseError),
+            token => return Err(ParseErr(format!("Encountered unexpected token: {}", token))),
         };
 
         self.advance();
@@ -139,7 +144,10 @@ impl<'a> Parser<'a> {
         }
         eprintln!("{}", message);
 
-        Err(RParseError)
+        Err(ParseErr(format!(
+            "Error while consuming token: {}",
+            message
+        )))
     }
 
     fn previous(&self) -> Token {
